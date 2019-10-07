@@ -169,7 +169,7 @@ def processAllFiles(directory: str = "../llvm") -> List[Block]:
   print("\nProcessed", counter, "files")
   return results
 
-def printMarkdown(blocks: List[Block]):
+def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
   blocks.sort()
 
   # a tuple of (name, heading) used for docIndex
@@ -218,12 +218,15 @@ def printMarkdown(blocks: List[Block]):
   docHeading.write("\n\n") # para change
   docHeading.write("**FIXME** and **TODO** signify some remaining work")
 
-  print(docHeading.getvalue(), end="")
-  print(docIndex.getvalue(), end="")
-  print(docDetails.getvalue(), end="")
-  print("<br><br><br>")
-  print("<div class='footer'> <br/> &copy; LEG Team <br/> </div>")
+  docFooter = io.StringIO()
+  docFooter.write("<br><br><br>\n")
+  docFooter.write("<div class='footer'> <br/> &copy; LEG Team <br/> </div>\n")
 
+  return [docHeading, docIndex, docDetails, docFooter]
+
+def printMarkdown(content: List[io.StringIO],
+                  handle: io.TextIOBase):
+  map(lambda x: handle.write(x.getValue()), content)
 
 if __name__ == "__main__":
   if sys.argv[0] != "./extract.py":
