@@ -226,7 +226,7 @@ def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
 
 def printMarkdown(content: List[io.StringIO],
                   handle: io.TextIOBase):
-  map(lambda x: handle.write(x.getValue()), content)
+  map(lambda x: handle.write(x.getvalue()), content)
 
 if __name__ == "__main__":
   if sys.argv[0] != "./extract.py":

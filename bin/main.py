@@ -18,7 +18,7 @@ args = parser.parse_args()
 
 # process all sources
 blocks = extract.processAllFiles(args.sources[0])
-
+  
 if args.publish is not None:
   # publish a big directory
   publish.cors_free(blocks, args)
