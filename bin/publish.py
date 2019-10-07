@@ -11,7 +11,6 @@ def concatStreams(streams: List[io.StringIO]) -> str:
   return '`{}`'.format(flat.replace('`', '\`'))
 
 def cors_free(blocks: List[extract.Block], args: Dict):
-  print(concatStreams(extract.makeMarkdown(blocks)))
   os.makedirs(args.publish, exist_ok=True)
   destination = open('{}/notes.md'.format(args.publish), 'w')
   extract.printMarkdown(blocks, destination)

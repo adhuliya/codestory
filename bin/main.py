@@ -10,8 +10,8 @@ group.add_argument("-p", "--publish", type=str,
                    default=None,
                    help='create a docs folder with html page as well')
 group.add_argument('-o', '--outfile', type=str,
-                    default='-',
-                    help='destination file')
+                    default=None,
+                    help='destination file. Use `-` for stdout')
 parser.add_argument('sources', type=str, nargs='+',
                     help='the path to sources or includes')
 args = parser.parse_args()
@@ -23,7 +23,8 @@ if args.publish is not None:
   # publish a big directory
   publish.cors_free(blocks, args)
 
-# Just create the markdown file
-destination = sys.stdout if args.outfile == '-' else open(args.outfile, 'w')
-extract.printMarkdown(blocks, destination)
+if args.outfile is not None:
+  # Just create the markdown file
+  destination = sys.stdout if args.outfile == '-' else open(args.outfile, 'w')
+  extract.printMarkdown(blocks, destination)
 
