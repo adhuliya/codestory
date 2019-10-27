@@ -28,6 +28,9 @@ cutil.prepareDestinationDirectory(skelDir, args.publish)
 doc = publish.loadCache(args.publish)
 
 # STEP 4: Process the source directory
+if not osp.exists(args.source):
+  print("CodeStory: ERROR:", args.source, "directory doesn't exist!", file=sys.stderr)
+  exit(1)
 doc.processDirectory(args.source)
 
 # STEP 5: Create the markdown file
