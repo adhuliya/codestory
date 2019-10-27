@@ -1,27 +1,37 @@
 #!/usr/bin/env python3
+
+"""
+This module contains the logic to extract
+the blocks and their information form a given string.
+The given string is generally the contents of a file.
+"""
+
 import re
 from typing import List, Dict
 
-import common_util as util
+import common_util as cutil
+import util as util
 from os import path as osp
 import os
 import io
 import sys
 
-theStart = r"{comment}>>\s*BLOCK\s*\((?P<name>\w+)\.(?P<level>#*)(?P<seq>\d+)\)\s*START"
-theEnd   = r".*{comment}>>\s*BLOCK\s*\((?P=name)\.(?P=level)(?P=seq)\)\s*END"
+theStart = (r"{commentChars}>>\s*BLOCK\s*\((?P<name>\w+)\.(?P<level>#*)("
+            r"?P<seq>\d+)\)\s*START")
+theEnd   = (r".*{commentChars}>>\s*BLOCK\s*\((?P=name)"
+            r"\.(?P=level)(?P=seq)\)\s*END")
 theBlock = theStart + r".*" + theEnd
             
-aStart = r"{comment}>>\s*BLOCK\s*\(\w+\.#*\d+\)\s*START"
-aEnd = r"{comment}>>\s*BLOCK\s*\(\w+\.#*\d+\)\s*END"
-aStartOrEnd = r"{comment}>>\s*BLOCK\s*\(\w+\.#*\d+\)\s*(START|END)"
+aStart = r"{commentChars}>>\s*BLOCK\s*\(\w+\.#*\d+\)\s*START"
+aEnd = r"{commentChars}>>\s*BLOCK\s*\(\w+\.#*\d+\)\s*END"
+aStartOrEnd = r"{commentChars}>>\s*BLOCK\s*\(\w+\.#*\d+\)\s*(START|END)"
 
 # special comment line (full line)
-specialComment = r"^\s*{comment}>>(?P<content>.*)$"
+specialComment = r"^\s*{commentChars}>>(?P<content>.*)$"
 # standard comment line (full line)
-standardComment = r"^\s*{comment}"
+standardComment = r"^\s*{commentChars}"
 
-# Map of the filetype and the single line comment characters
+# Map of the filetype and the single line commentChars characters
 # FIXME: The system currently doesn't handle multiline comments.
 fileCommentMap: Dict[str, str] = {
   ".cpp": "//",
@@ -33,25 +43,33 @@ fileCommentMap: Dict[str, str] = {
   ".py": "#",
 }
 
+class FileInfo:
+  def __init__(self,
+               filePath: util.AbsFilePathT
+  ) -> None:
+    self.filePath = filePath
+    self.mtime_ns = cutil.getFileModTimeInNanoSecs(filePath)
+
 class Block:
   """
-  This class represents a single block extracted
-  from the text.
+  This class represents a single block extracted from the text.
   """
   def __init__(self,
     name: str = "",
     level: int = 0,
     seq: int = 0, # sequence
     content: str = "",
-    comment: str = "//",
-    filePath: str = "",
+    commentChars: str = "//",
+    fileInfo: FileInfo = None,
+    lineNum: int = 1,
   ) -> None:
     self.name = name
     self.level = level
     self.seq = seq
     self.content = content
-    self.comment = comment
-    self.filePath = filePath
+    self.commentChars = commentChars
+    self.fileInfo = fileInfo
+    self.lineNum = lineNum
 
     # to be set after processing the self.content
     self.heading = ""
@@ -66,9 +84,13 @@ class Block:
     """
     lines = self.content.splitlines()
 
-    aStartOrEndPattern = re.compile(aStartOrEnd.format(comment=self.comment))
-    specialCommentPattern = re.compile(specialComment.format(comment=self.comment))
+    aStartOrEndPattern = re.compile(aStartOrEnd.format(
+      commentChars=self.commentChars))
+    specialCommentPattern = re.compile(
+      specialComment.format(commentChars=self.commentChars))
     state = 1 # 1 = heading
+    self.lineNum += 1
+
     for line in lines:
       if aStartOrEndPattern.search(line):
         continue # ignore start and end block indicators
@@ -82,10 +104,12 @@ class Block:
       m = specialCommentPattern.search(line)
       if m and state == 1: # the heading
         self.heading = m.group("content")
+        self.lineNum += 1
         state = 2
         continue
       elif m and state == 2: # the writeup
         # writeup should immediately follow the start block indicator
+        self.lineNum += 1
         if m.group("content").strip():
           self.writeup.append(m.group("content"))
         else:
@@ -113,9 +137,32 @@ class Block:
   def __eq__(self, other):
     return self.name == other.name and self.seq == other.seq
 
-def extractBlocks(s: str, comment: str= "//") -> List[Block]:
-  aStartPattern = re.compile(aStart.format(comment=comment))
-  blockPattern = re.compile(theBlock.format(comment=comment), re.DOTALL)
+def extractBlocksFromFile(absFilePath: util.AbsFilePathT) -> List[Block]:
+  """Extracts all the blocks from the given file."""
+  results = []
+
+  ext = osp.splitext(absFilePath)[1]
+  if ext in fileCommentMap:
+    try:
+      with open(absFilePath) as f:
+        commentChars = fileCommentMap[ext]
+        blocks = extractBlocks(f.read(), commentChars)
+        results.extend(blocks)
+    except UnicodeDecodeError as e:
+      pass
+    except Exception as e:
+      print("CodeStory: ERROR:", e, file=sys.stderr)
+      print("CodeStory: ERROR:", "File:", absFilePath, file=sys.stderr)
+      raise e
+
+  return results
+
+def extractBlocks(s: str, commentChars: str= "//") -> List[Block]:
+  """
+  Extracts blocks from the given string.
+  """
+  aStartPattern = re.compile(aStart.format(commentChars=commentChars))
+  blockPattern = re.compile(theBlock.format(commentChars=commentChars), re.DOTALL)
 
   results = []
   startPos = 0
@@ -127,8 +174,10 @@ def extractBlocks(s: str, comment: str= "//") -> List[Block]:
             level=len(match.group("level")),
             seq=int(match.group("seq")),
             content=match.group(),
-            comment=comment,
+            commentChars=commentChars,
           )
+      # this is the line number of the //>>BLOCK(... pattern
+      b.lineNum = cutil.calcLineNum(s, match.start())
       results.append(b)
 
       # check if another block starts inside this block
@@ -143,42 +192,15 @@ def extractBlocks(s: str, comment: str= "//") -> List[Block]:
 
   return results
 
-def processAllFiles(directory: str = "../llvm") -> List[Block]:
-  counter = 0
-  results = []
-
-  directory = osp.abspath(directory)
-  allFilePaths = util.getAllFilePaths(directory)
-
-  for filePath in allFilePaths:
-    ext = osp.splitext(filePath)[1]
-    if ext in fileCommentMap:
-      try:
-        with open(filePath) as f:
-          comment = fileCommentMap[ext]
-          tmp = extractBlocks(f.read(), comment) 
-          for t in tmp:
-            t.filePath = filePath # update the file path
-            t.processContent()
-          results.extend(tmp)
-        counter += 1
-      except Exception as e:
-        print(e, file=sys.stderr)
-        print("File:", filePath, file=sys.stderr)
-
-  print("\nProcessed", counter, "files")
-  return results
-
 def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
   blocks.sort()
 
   # a tuple of (name, heading) used for docIndex
   namesAndHeadings = []
+  docDetails = io.StringIO()
 
   baseLevel = 2  # i.e. start from h2
   currName = ""  # current name of the block
-
-  docDetails = io.StringIO()
 
   for block in blocks:
     firstBlock = False
@@ -197,12 +219,16 @@ def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
 
     docDetails.writelines(block.writeup)
 
-    sourceFileName = osp.basename(block.filePath)
-    docDetails.write(f"\n\n[{sourceFileName}](file://{block.filePath})\n\n")
+    sourceFileName = osp.basename(block.fileInfo.filePath)
+    docDetails.write(f"\n\n[{sourceFileName}](file://{block.fileInfo.filePath})\n\n")
 
+    docDetails.write(f"<pre class='language-cpp line-numbers'"
+                     f" data-start='{block.lineNum}'>"
+                     f"<code>\n")
     for codeLine in block.code:
       space = " " * 4
       docDetails.write(f"{space}{codeLine}\n")
+    docDetails.write(f"</code></pre>\n")
 
   docIndex = io.StringIO()
 
@@ -210,28 +236,20 @@ def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
   for name, heading in namesAndHeadings:
     docIndex.write(f"\n1. [{heading}](#{name})") 
 
-
-  docHeading = io.StringIO()
-  docHeading.write("# Clang/LLVM Notes\n")
-  docHeading.write("These are automatically generated notes from the")
-  docHeading.write(" source code of Clang/LLVM 8.0.1.")
-  docHeading.write("\n\n") # para change
-  docHeading.write("**FIXME** and **TODO** signify some remaining work")
-
-  docFooter = io.StringIO()
-  docFooter.write("<br><br><br>\n")
-  docFooter.write("<div class='footer'> <br/> &copy; LEG Team <br/> </div>\n")
-
-  return [docHeading, docIndex, docDetails, docFooter]
+  return [docIndex, docDetails]
 
 def printMarkdown(content: List[io.StringIO],
                   handle: io.TextIOBase):
   map(lambda x: handle.write(x.getvalue()), content)
 
-if __name__ == "__main__":
-  if sys.argv[0] != "./extract.py":
-    print("Error. Note: Run from the location of this script.", file=sys.stderr)
-    exit(1)
-  blocks = processAllFiles("../llvm")
-  printMarkdown(blocks)
+#  docHeading = io.StringIO()
+#  docHeading.write("# Clang/LLVM Notes\n")
+#  docHeading.write("These are automatically generated notes from the")
+#  docHeading.write(" source code of Clang/LLVM 8.0.1.")
+#  docHeading.write("\n\n") # para change
+#  docHeading.write("**FIXME** and **TODO** signify some remaining work")
+#
+#  docFooter = io.StringIO()
+#  docFooter.write("<br><br><br>\n")
+#  docFooter.write("<div class='footer'> <br/> &copy; LEG Team <br/> </div>\n")
 
