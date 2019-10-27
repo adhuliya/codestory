@@ -65,7 +65,7 @@ class Document:
       else:
         counter += 1
         relFilePath = absFilePath[prefixLen:]
-        self.cachedFileInfoMap[fileInfo.filePath] = fileInfo
+        self.cachedFileInfoMap[relFilePath] = fileInfo
         blocks = extract.extractBlocksFromFile(absFilePath)
         for b in blocks:
           b.fileInfo = fileInfo # update the file path
@@ -112,22 +112,6 @@ class Document:
     with open(filePath, "rb") as file:
       doc: Document = pickle.load(file)
       return doc
-
-def concatStreams(streams: List[io.StringIO]) -> str:
-  flat = '\n'.join([x.getvalue() for x in streams])
-  return '`{}`'.format(flat.replace('`', '\`'))
-
-def cors_free(blocks: List[extract.Block], args: Dict):
-  os.makedirs(args.publish, exist_ok=True)
-  destination = open('{}/notes.md'.format(args.publish), 'w')
-  extract.printMarkdown(blocks, destination)
-  os.system('cp -r {} {}'.format(osp.join(template_dir, 'static'),
-                                 args.publish))
-  with open(osp.join(template_dir, 'notes_cors_free.html'), 'r') as fin:
-    with open(osp.join(args.publish, 'notes.html'), 'w') as fout:
-      text = fin.read()
-      fout.write(text.replace('MARKDOWN_FILE_CONTENT',
-                              concatStreams(extract.makeMarkdown(blocks))))
 
 def dumpCache(doc: Document, dirPath: cutil.RelFilePathT) -> None:
   absDirPath = cutil.getAbolutePath(dirPath)
