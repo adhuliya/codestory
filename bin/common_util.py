@@ -3,15 +3,14 @@
 # MIT License
 # Copyright (c) 2019 Anshuman Dhuliya
 
-"""Common utility functions module which can be used in any project.
-Originalfile: $MYDATA/git/ws/ws-misc-git/python/mylib/util/common_util.py
-Note: This file has been hard linked at many places.
+"""
+Common utility functions module which can be used in any project.
 """
 
 import os
 import os.path as osp
-from io import StringIO
 import subprocess as subp
+import pickle
 from typing import Optional, List
 
 import logging
@@ -20,12 +19,16 @@ _log = logging.getLogger(__name__)
 globalCounter: int = 0
 RelFilePathT = str  # a relative file path (could be absolute too)
 AbsFilePathT = str  # an absolute file path
-textChars = bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
+TEXT_CHARS = bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
 
 # used in calculation of line number
 lastStr = ""
 lastPos = 0
 lastLineCount = 0
+
+################################################
+# BLOCK START: FileSystem_Related
+################################################
 
 def createDir(dirPath, existOk=True):
   """Creates dir. Relative paths use current directory.
@@ -56,13 +59,6 @@ def getAbolutePath(filePath: str):
     absPath = osp.join(cwd, filePath)
   return absPath
 
-def getUniqueId() -> int:
-  """Returns a unique integer id (increments by 1)."""
-  # use of simple function and a global var is runtime efficient.
-  global globalCounter
-  globalCounter += 1
-  return globalCounter
-
 def readFromFile(fileName: str) -> str:
   """Returns the complete content of the given file."""
   with open(fileName) as f:
@@ -80,48 +76,6 @@ def appendToFile(fileName: str, content: str):
     f.write(content)
   return None
 
-def hexToFloat(hexVal) -> float:
-  """Convert a float hex representation 0x41b80000 to a real float value"""
-  import struct
-  if isinstance(hexVal, str):
-    return struct.unpack("!f", struct.pack("!i", int(hexVal, 16)))[0]
-  elif isinstance(hexVal, int):
-    return struct.unpack("!f", struct.pack("!i", hexVal))[0]
-
-def hexToDouble(hexVal) -> float:
-  """Convert a float hex representation 0x41b80000 to a real double value"""
-  import struct
-  if isinstance(hexVal, str):
-    return struct.unpack("!d", struct.pack("!q", int(hexVal, 16)))[0]
-  elif isinstance(hexVal, int):
-    return struct.unpack("!d", struct.pack("!q", hexVal))[0]
-
-def randomString(length: int = 10,
-                 digits: bool = True,
-                 caps: bool = True,
-                 small: bool = True,
-) -> Optional[str]:
-  """Returns a random string of given length."""
-  import random
-  import string
-  if not (digits or caps or small): return None
-
-  randDigits = random.choices(string.digits, k=length)
-  randCaps = random.choices(string.ascii_uppercase, k=length)
-  randSmall = random.choices(string.ascii_lowercase, k=length)
-
-  collect = []
-  if digits:
-    collect = randDigits
-  if caps:
-    collect.extend(randCaps)
-  if small:
-    collect.extend(randSmall)
-
-  random.shuffle(collect)
-
-  return "".join(collect[:length])
-
 def getAllFilePaths(directory: str) -> List[str]:
   """Returns the full file names of all the files
   (recursively) withing the given directory."""
@@ -133,33 +87,12 @@ def getAllFilePaths(directory: str) -> List[str]:
       path = osp.join(root, f)
       yield path
 
-def getUserName() -> str:
-  return os.environ.get("USER", "Anonymous")
-
-def getFileModTimeInNanoSecs(filePath: str) -> int:
-  stat = os.stat(filePath, follow_symlinks=True)
-  return stat.st_mtime_ns
-
-def calcLineNum(s: str, pos: int) -> int:
-  """Calculates the line number of the given pos in
-  the string s. It optimizes by caching the last
-  calculated result."""
-  global lastStr, lastPos, lastLineCount
-  if s != lastStr:
-    lastStr = s
-    lastPos = 0
-    lastLineCount = 1
-  for i in range(lastPos, pos):
-    if s[i] == os.linesep:
-      lastLineCount += 1
-  return lastLineCount
-
 def isEmptyDir(directory: str) -> bool:
   lst = os.listdir(directory)
   return len(lst) == 0
 
 def isBinaryFile(filePath: RelFilePathT) -> bool:
-  isBinaryString = lambda bytes: bool(bytes.translate(None, textChars))
+  isBinaryString = lambda bytes: bool(bytes.translate(None, TEXT_CHARS))
   return isBinaryString(open(filePath, "rb").read(1024))
 
 def getScriptRelativeFilePath(relFileName: str) -> str:
@@ -225,4 +158,119 @@ def prepareDestinationDirectory(
 
       if not osp.exists(absFilePath):
         copyFile(absSrcFilePath, absDirPath)
+
+def getFileModTimeInNanoSecs(filePath: str) -> int:
+  stat = os.stat(filePath, follow_symlinks=True)
+  return stat.st_mtime_ns
+
+def commandExists(progName: str) -> bool:
+  """Returns True if the given command exists."""
+  cmd = f"which {progName}"
+  completed = subp.run(cmd, shell=True)
+  if completed.returncode != 0:
+    return False
+  return True
+
+################################################
+# BLOCK END  : FileSystem_Related
+################################################
+
+def getUniqueId() -> int:
+  """Returns a unique integer id (increments by 1)."""
+  # use of simple function and a global var is runtime efficient.
+  global globalCounter
+  globalCounter += 1
+  return globalCounter
+
+def getUserName() -> str:
+  return os.environ.get("USER", "Anonymous")
+
+def hexToFloat(hexVal) -> float:
+  """Convert a float hex representation 0x41b80000 to a real float value"""
+  import struct
+  if isinstance(hexVal, str):
+    return struct.unpack("!f", struct.pack("!i", int(hexVal, 16)))[0]
+  elif isinstance(hexVal, int):
+    return struct.unpack("!f", struct.pack("!i", hexVal))[0]
+
+def hexToDouble(hexVal) -> float:
+  """Convert a float hex representation 0x41b80000 to a real double value"""
+  import struct
+  if isinstance(hexVal, str):
+    return struct.unpack("!d", struct.pack("!q", int(hexVal, 16)))[0]
+  elif isinstance(hexVal, int):
+    return struct.unpack("!d", struct.pack("!q", hexVal))[0]
+
+def randomString(length: int = 10,
+                 digits: bool = True,
+                 caps: bool = True,
+                 small: bool = True,
+) -> Optional[str]:
+  """Returns a random string of given length."""
+  import random
+  import string
+  if not (digits or caps or small): return None
+
+  randDigits = random.choices(string.digits, k=length)
+  randCaps = random.choices(string.ascii_uppercase, k=length)
+  randSmall = random.choices(string.ascii_lowercase, k=length)
+
+  collect = []
+  if digits:
+    collect = randDigits
+  if caps:
+    collect.extend(randCaps)
+  if small:
+    collect.extend(randSmall)
+
+  random.shuffle(collect)
+
+  return "".join(collect[:length])
+
+def _calcLineNum():
+  """Calculates the line number of the given pos in
+  the string s. It optimizes by caching the last
+  calculated result.
+  It assumes that endPos increases in each call.
+  """
+  lastStr = ""
+  lastPos = 0
+  lastLineCount = 0
+
+  # this func is named calcLineNum()
+  def func(s: str, endPos: int) -> int:
+    nonlocal lastStr, lastPos, lastLineCount
+    if s != lastStr:
+      lastStr = s
+      lastPos = 0
+      lastLineCount = 1
+    for i in range(lastPos, endPos):
+      if s[i] == os.linesep:
+        lastLineCount += 1
+    lastPos = i + 1
+    return lastLineCount
+
+  return func
+
+calcLineNum = _calcLineNum()
+
+def memoize(func):
+  """
+  Adds memoization to an arbitrary python function.
+  Its a decorator.
+  """
+
+  cache = {} # a dictionary storing results
+
+  def wrapper(*args, **kwargs):
+    key = (pickle.dumps(args), pickle.dumps(kwargs))
+
+    if key in cache:
+      return cache[key]
+
+    value = func(*args, **kwargs)
+    cache[key] = value
+    return value
+
+  return wrapper
 

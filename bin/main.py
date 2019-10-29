@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description='Write stories in your code ;)')
 parser.add_argument("-p", "--publish", type=str,
                     default="codestory",
                     help='create PUBLISH folder with markdown and html pages')
-parser.add_argument("-s", "--source", type=str,
+parser.add_argument("source", type=str,
                     default = "src",
                     help='the path to source dir to be processed')
 

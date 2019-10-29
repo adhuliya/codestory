@@ -178,6 +178,7 @@ def extractBlocks(s: str, commentChars: str= "//") -> List[Block]:
           )
       # this is the line number of the //>>BLOCK(... pattern
       b.lineNum = cutil.calcLineNum(s, match.start())
+      print(b.lineNum, b.name, b.seq) #delit
       results.append(b)
 
       # check if another block starts inside this block
