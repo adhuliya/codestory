@@ -16,15 +16,15 @@ import os
 import io
 import sys
 
-theStart = (r"{commentChars}>>\s*BLOCK\s*\((?P<name>\w+)\.(?P<level>#*)("
-            r"?P<seq>\d+)\)\s*START")
-theEnd   = (r".*{commentChars}>>\s*BLOCK\s*\((?P=name)"
-            r"\.(?P=level)(?P=seq)\)\s*END")
+theStart = (r"{commentChars}>>\s*codestory\s+(?P<name>\w+)\.(?P<level>#*)"
+            r"(?P<seq>\d+)\s+[sS][tT][aA][rR][tT]")
+theEnd   = (r".*{commentChars}>>\s*codestory\s+(?P=name)"
+            r"\.(?P=level)(?P=seq)\s+[eE][nN][dD]")
 theBlock = theStart + r".*" + theEnd
             
-aStart = r"{commentChars}>>\s*BLOCK\s*\(\w+\.#*\d+\)\s*START"
-aEnd = r"{commentChars}>>\s*BLOCK\s*\(\w+\.#*\d+\)\s*END"
-aStartOrEnd = r"{commentChars}>>\s*BLOCK\s*\(\w+\.#*\d+\)\s*(START|END)"
+aStart = r"{commentChars}>>\s*codestory\s+\w+\.#*\d+\s+[sS][tT][aA][rR][tT]"
+aEnd = r"{commentChars}>>\s*codestory\s+\w+\.#*\d+\s+[eE][nN][dD]"
+aStartOrEnd = r"{commentChars}>>\s*codestory\s+\w+\.#*\d+\s+([sS][tT][aA][rR][tT]|[eE][nN][dD])"
 
 # special comment line (full line)
 specialComment = r"^\s*{commentChars}>>(?P<content>.*)$"

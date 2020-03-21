@@ -38,7 +38,7 @@ namespace {
 }
 
 char Hello::ID = 0;
-//>>BLOCK(HOW_TO_REGISTER_PASS_LEGACY.10)START
+//>>codestory HOW_TO_REGISTER_PASS_LEGACY.10 start
 //>>How is a pass registered? (Legacy PM)
 //>>We create an object of the `RegisterPass` class template,
 //>>from the file defining our pass.
@@ -50,7 +50,7 @@ char Hello::ID = 0;
 //>>
 //>>The name `X` is itself not used anywhere (although the object created is).
 static RegisterPass<Hello> X("hello", "Hello World Pass");
-//>>BLOCK(HOW_TO_REGISTER_PASS_LEGACY.10)END
+//>>codestory HOW_TO_REGISTER_PASS_LEGACY.10 end
 
 namespace {
   // Hello2 - The second implementation with getAnalysisUsage implemented.

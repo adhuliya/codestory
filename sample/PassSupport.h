@@ -74,13 +74,13 @@ class Pass;
   INITIALIZE_PASS_BEGIN(PassName, Arg, Name, Cfg, Analysis)                    \
   PassName::registerOptions();
 
-//>>BLOCK(HOW_TO_REGISTER_PASS_LEGACY.40)START
+//>>codestory HOW_TO_REGISTER_PASS_LEGACY.40 START
 //>>
 //>>Below is the definition of the `callDefaultCtor()` function.
 template <typename PassName> Pass *callDefaultCtor() { return new PassName(); }
-//>>BLOCK(HOW_TO_REGISTER_PASS_LEGACY.40)END
+//>>codestory HOW_TO_REGISTER_PASS_LEGACY.40 END
 
-//>>BLOCK(HOW_TO_REGISTER_PASS_LEGACY.20)START
+//>>codestory HOW_TO_REGISTER_PASS_LEGACY.20 START
 //>>
 //>>The constructor of `RegisterPass` calls the `PassRegistry::getPassRegistry()->registerPass()`
 //>>method to register the pass with the `PassRegistry`.
@@ -108,7 +108,7 @@ template <typename passName> struct RegisterPass : public PassInfo {
   // Register Pass using default constructor...
   RegisterPass(StringRef PassArg, StringRef Name, bool CFGOnly = false,
                bool is_analysis = false)
-  //>>BLOCK(HOW_TO_REGISTER_PASS_LEGACY.30)START
+  //>>codestory HOW_TO_REGISTER_PASS_LEGACY.30 START
   //>>
   //>>Looking at the constructor definition closely,
   //>>notice how `&passName::ID` is used to steal the address
@@ -126,9 +126,9 @@ template <typename passName> struct RegisterPass : public PassInfo {
                  is_analysis) {
     PassRegistry::getPassRegistry()->registerPass(*this);
   }
-  //>>BLOCK(HOW_TO_REGISTER_PASS_LEGACY.30)END
+  //>>codestory HOW_TO_REGISTER_PASS_LEGACY.30 END
 };
-//>>BLOCK(HOW_TO_REGISTER_PASS_LEGACY.20)END
+//>>codestory HOW_TO_REGISTER_PASS_LEGACY.20 END
 
 /// RegisterAnalysisGroup - Register a Pass as a member of an analysis _group_.
 /// Analysis groups are used to define an interface (which need not derive from
