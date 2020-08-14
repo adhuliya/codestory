@@ -1,25 +1,26 @@
 body {
-  max-width: 80%;
-  font-size: 1.1em;
-  margin: 2em auto;
+    max-width: 80%;
+    font-size: 1.1em;
+    margin: 2em auto;
+    font-family: "Helvetica Neue", Arial;
 }
 
 h1 {
-  color: rgba(10, 30, 180, 0.8);
+    color: rgba(10, 30, 180, 0.8);
 }
 
 a {
-  color: rgba(0, 0, 153, 1);
-  text-decoration: none;
+    color: rgba(0, 0, 153, 1);
+    text-decoration: none;
 }
 
 a:hover {
-  color: Tomato;
+    color: Tomato;
 }
 
 .footer {
-  text-align: center;
-  padding: 2rem;
+    text-align: center;
+    padding: 2rem;
 }
 
 code {
@@ -56,4 +57,9 @@ a {
 .footer {
     text-align: center;
     padding: 2rem;
+}
+
+hr {
+    max-width: 95%;
+    color: lightgray;
 }

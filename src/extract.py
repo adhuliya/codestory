@@ -31,6 +31,8 @@ specialComment = r"^\s*{commentChars}>>(?P<content>.*)$"
 # standard comment line (full line)
 standardComment = r"^\s*{commentChars}"
 
+indexStr = "CodeStory Index"
+
 # Map of the filetype and the single line commentChars characters
 # FIXME: The system currently doesn't handle multiline comments.
 fileCommentMap: Dict[str, str] = {
@@ -41,6 +43,8 @@ fileCommentMap: Dict[str, str] = {
   ".s": ";",
   ".sh": "#",
   ".py": "#",
+  ".td": "//",          # tablegen files
+  ".txt": "//",         # CMakeFile.txt
 }
 
 class FileInfo:
@@ -231,11 +235,14 @@ def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
       docDetails.write(f"{space}{codeLine}\n")
     docDetails.write(f"</code></pre>\n")
 
+  docDetails.write(f'<a href="#">Back to Index</a><br/><hr/>\n')
+
   docIndex = io.StringIO()
 
-  docIndex.write("\n\n# Index\n")
+  docIndex.write(f"\n\n# {indexStr}\n")
   for name, heading in namesAndHeadings:
-    docIndex.write(f"\n1. [{heading}](#{name})") 
+    docIndex.write(f"\n1. [{heading}](#{name})")
+  docIndex.write("\n<br/><br/><hr/><br/>")
 
   return [docIndex, docDetails]
 
