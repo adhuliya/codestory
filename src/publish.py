@@ -54,6 +54,8 @@ class Document:
 
     prefixLen = len(absDirPath) + 1
     for absFilePath in cutil.getAllFilePaths(absDirPath):
+      if not osp.exists(absFilePath):
+        continue
       if osp.isdir(absFilePath) or cutil.isBinaryFile(absFilePath):
         # don't process directories and binary files
         continue
