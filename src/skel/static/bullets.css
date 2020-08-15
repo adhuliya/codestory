@@ -61,5 +61,10 @@ a {
 
 hr {
     max-width: 95%;
-    color: lightgray;
+    color: #FEFEFE;
+}
+
+.backtoindex {
+    text-align: right;
+    padding: 10px;
 }

@@ -43,12 +43,13 @@ class Document:
       Optional[Dict[util.AbsFilePathT, extract.FileInfo]] = {}
     self.cachedFileBlocksMap:\
       Optional[Dict[util.AbsFilePathT, List[extract.Block]]] = {}
+    self.filesProcessed = 0
 
   def processDirectory(self,
                        dirPath: cutil.RelFilePathT
   ) -> None:
     """Get all blocks from all the files in the given directory."""
-    counter = 0
+    self.filesProcessed = 0
 
     absDirPath = osp.abspath(dirPath)
 
@@ -65,7 +66,7 @@ class Document:
       if self.isCached(fileInfo, absDirPath):
         pass
       else:
-        counter += 1
+        self.filesProcessed += 1
         relFilePath = absFilePath[prefixLen:]
         self.cachedFileInfoMap[relFilePath] = fileInfo
         blocks = extract.extractBlocksFromFile(absFilePath)
@@ -75,7 +76,7 @@ class Document:
         blocks.sort()
         self.cachedFileBlocksMap[fileInfo.filePath] = blocks
 
-    print("\nCodeStory: Processed", counter, "new files.")
+    print("\nCodeStory: Processed", self.filesProcessed, "new files.")
 
   def generateMarkdown(self):
     # STEP 1: Collect all blocks in one list
@@ -84,7 +85,8 @@ class Document:
       allBlocks.extend(blockList)
 
     # STEP 2: Call the main logic
-    self.docIndex, self.docDetails = extract.makeMarkdown(allBlocks)
+    self.docIndex, self.docDetails = extract.makeMarkdown(allBlocks,
+                                                          self.filesProcessed)
 
   def isCached(self,
                fileInfo: extract.FileInfo,

@@ -13,7 +13,6 @@ import common_util as cutil
 import util as util
 from mistune import mistune
 from os import path as osp
-import os
 import io
 import sys
 
@@ -33,6 +32,8 @@ specialComment = r"^\s*{commentChars}>>(?P<content>.*)$"
 standardComment = r"^\s*{commentChars}"
 
 indexStr = "CodeStory Index"
+backToIndexText = ('<p class="backtoindex"><a href="#">'
+                   'Back to Index</a><br/><hr/><br/></p>\n')
 
 # Map of the filetype and the single line commentChars characters
 # FIXME: The system currently doesn't handle multiline comments.
@@ -198,7 +199,10 @@ def extractBlocks(s: str, commentChars: str= "//") -> List[Block]:
 
   return results
 
-def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
+def makeMarkdown(
+    blocks: List[Block],
+    filesProcessed: int,
+) -> List[io.StringIO]:
   blocks.sort()
 
   # a tuple of (name, heading) used for docIndex
@@ -208,9 +212,13 @@ def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
   baseLevel = 2  # i.e. start from h2
   currName = ""  # current name of the block
 
+  printBackToIndex = False
   for block in blocks:
     firstBlock = False
     if currName != block.name:
+      if printBackToIndex: # skip for the first block
+        docDetails.write(backToIndexText)
+      if not printBackToIndex: printBackToIndex = True
       firstBlock = True
       currName = block.name
       namesAndHeadings.append((currName, block.heading))
@@ -237,11 +245,11 @@ def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
       docDetails.write(f"{space}{cl}\n")
     docDetails.write(f"</code></pre>\n")
 
-  docDetails.write(f'<a href="#">Back to Index</a><br/><hr/>\n')
-
+  docDetails.write(backToIndexText)
   docIndex = io.StringIO()
 
   docIndex.write(f"\n\n# {indexStr}\n")
+  docIndex.write(f"Total New Files Processed: {filesProcessed}\n")
   for name, heading in namesAndHeadings:
     docIndex.write(f"\n1. [{heading}](#{name})")
   docIndex.write("\n<br/><br/><hr/><br/>")
