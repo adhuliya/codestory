@@ -11,6 +11,7 @@ from typing import List, Dict
 
 import common_util as cutil
 import util as util
+from mistune import mistune
 from os import path as osp
 import os
 import io
@@ -232,7 +233,8 @@ def makeMarkdown(blocks: List[Block]) -> List[io.StringIO]:
                      f"<code>\n")
     for codeLine in block.code:
       space = " " * 4
-      docDetails.write(f"{space}{codeLine}\n")
+      cl = mistune.escape_html(codeLine)
+      docDetails.write(f"{space}{cl}\n")
     docDetails.write(f"</code></pre>\n")
 
   docDetails.write(f'<a href="#">Back to Index</a><br/><hr/>\n')
